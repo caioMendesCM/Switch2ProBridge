@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:Switch2ProBridge.App"
         Title="Switch 2 Pro Bridge" Width="1040" Height="560" MinWidth="720" MinHeight="420"
         Background="#16171A" Foreground="#E6E8EB" FontFamily="Segoe UI"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen" Icon="app.ico">
     <Window.Resources>
         <Style x:Key="Caption" TargetType="TextBlock">
             <Setter Property="FontSize" Value="17"/>

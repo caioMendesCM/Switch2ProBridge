@@ -27,6 +27,7 @@ Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\{#AppExe}
+SetupIconFile=..\Switch2ProBridge.App\app.ico
 CloseApplications=yes
 
 [Tasks]
