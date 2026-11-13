@@ -32,7 +32,7 @@ CloseApplications=yes
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "gamebarfix"; Description: "Don't open Xbox Game Bar when the Home button is pressed (avoids the 'ms-gamebar' pop-up)"; GroupDescription: "Windows settings:"
+Name: "gamebarfix"; Description: "Stop the 'ms-gamebar' pop-up when Xbox Game Bar isn't installed"; GroupDescription: "Windows settings:"
 
 [Files]
 Source: "..\publish\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
@@ -46,6 +46,17 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 [Registry]
 ; Same as Settings > Gaming > Game Bar > "Open Xbox Game Bar using this button on a controller" = off.
 Root: HKCU; Subkey: "Software\Microsoft\GameBar"; ValueType: dword; ValueName: "UseNexusForGameBarEnabled"; ValueData: 0; Tasks: gamebarfix
+; Windows opens ms-gamebar: links when an Xbox controller (our virtual one) connects. Without Game Bar installed
+; nothing handles them and Windows shows a "get an app" pop-up, so register a handler that does nothing.
+; Skipped when Game Bar is installed, since these per-user keys would override it.
+#define NoopHandler(Proto) \
+  'Root: HKCU; Subkey: "Software\Classes\' + Proto + '"; ValueType: string; ValueName: ""; ValueData: "URL:' + Proto + '"; Flags: uninsdeletekey; Tasks: gamebarfix; Check: not GameBarInstalled' + NewLine + \
+  'Root: HKCU; Subkey: "Software\Classes\' + Proto + '"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Tasks: gamebarfix; Check: not GameBarInstalled' + NewLine + \
+  'Root: HKCU; Subkey: "Software\Classes\' + Proto + '"; ValueType: string; ValueName: "NoOpenWith"; ValueData: ""; Tasks: gamebarfix; Check: not GameBarInstalled' + NewLine + \
+  'Root: HKCU; Subkey: "Software\Classes\' + Proto + '\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{sys}\systray.exe"""; Tasks: gamebarfix; Check: not GameBarInstalled' + NewLine
+#emit NoopHandler("ms-gamebar")
+#emit NoopHandler("ms-gamebarservices")
+#emit NoopHandler("ms-gamingoverlay")
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
@@ -53,6 +64,22 @@ Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags
 [Code]
 var
   RestartNeeded: Boolean;
+
+function GameBarInstalled: Boolean;
+var
+  Packages: TArrayOfString;
+  I: Integer;
+begin
+  // Per-user list of installed Store packages; Game Bar is Microsoft.XboxGamingOverlay.
+  Result := False;
+  if RegGetSubkeyNames(HKCU, 'Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\Repository\Packages', Packages) then
+    for I := 0 to GetArrayLength(Packages) - 1 do
+      if Pos('Microsoft.XboxGamingOverlay_', Packages[I]) = 1 then
+      begin
+        Result := True;
+        exit;
+      end;
+end;
 
 function ViGEmBusInstalled: Boolean;
 begin
